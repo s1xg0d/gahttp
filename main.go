@@ -3,6 +3,8 @@ package gahttp
 import (
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"sync"
 	"time"
 )
@@ -225,4 +227,22 @@ func Wrap(fn ProcFn, middleware ...func(ProcFn) ProcFn) ProcFn {
 		fn = m(fn)
 	}
 	return fn
+}
+
+
+func (p *Pipeline) GetFromHost(u string, actualHost string, fn ProcFn) error {
+	tmpURL, err := url.Parse(u)
+	if err != nil {
+		return err
+	}
+	urlHost := tmpURL.Host
+
+	u = strings.Replace(u, urlHost, actualHost, -1)
+	req, err := http.NewRequest("GET", u, nil)
+	req.Host = urlHost
+	if err != nil {
+		return err
+	}
+	p.Do(req, fn)
+	return nil
 }
